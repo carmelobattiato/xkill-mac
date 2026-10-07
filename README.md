@@ -1,122 +1,123 @@
+<div align="center">
+
+<img src="Assets/skull_active.png" width="120" alt="xkill-mac icon"/>
+
 # xkill-mac
 
-A macOS menu bar utility that lets you instantly kill any application by clicking on its window — inspired by the classic `xkill` tool from Linux/X11.
+**Instantly kill any macOS app by clicking on its window.**
+
+*Developed by [Carmelo Battiato](https://github.com/carmelobattiato)*
+
+[![macOS](https://img.shields.io/badge/macOS-13%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange?logo=swift&logoColor=white)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/carmelobattiato/xkill-mac?color=red)](https://github.com/carmelobattiato/xkill-mac/releases)
+
+</div>
+
+---
+
+## What is it?
+
+xkill-mac is a lightweight **menu bar utility** inspired by the classic `xkill` command from Linux/X11.
+
+When an app freezes and won't respond, you don't need to dig through Activity Monitor. Just click the skull, click the frozen window — it's gone.
 
 ## How it works
 
-1. Click the skull icon in the menu bar
-2. Your cursor turns into a red skull
-3. Click on any application window to force-quit it
-4. Press **ESC** at any time to cancel
+| Step | Action |
+|------|--------|
+| 1️⃣ | Click the **skull icon** in the menu bar |
+| 2️⃣ | Cursor becomes a **red skull** |
+| 3️⃣ | Click any window to **force-quit** its app |
+| ⎋ | Press **ESC** to cancel at any time |
 
-Right-click the menu bar icon to quit the app.
+> Right-click the menu bar icon → **Quit xkill-mac**
 
-## Screenshot
-
-> Skull icon in the menu bar → click → red skull cursor → click any window → app is killed
-
-## Requirements
-
-- macOS 13 (Ventura) or later
-- Xcode Command Line Tools (`xcode-select --install`)
-- Swift Package Manager (included with Xcode CLT)
+---
 
 ## Install
 
-### One-step installer (recommended)
+### Download DMG *(easiest)*
 
-Double-click `install.command` in Finder.
+1. Go to [**Releases**](https://github.com/carmelobattiato/xkill-mac/releases/latest)
+2. Download `xkill-mac.dmg`
+3. Open it, drag the app to `/Applications`
 
-This will:
-1. Generate the app icon
-2. Compile the project in release mode
-3. Build `xkill-mac.app`
-4. Install it to `/Applications`
-5. Launch the app
+> **First launch:** macOS will warn about an unidentified developer.
+> Right-click the app → **Open** → **Open** to bypass Gatekeeper.
 
-### Manual build
+### Build from source
 
 ```bash
 git clone https://github.com/carmelobattiato/xkill-mac.git
 cd xkill-mac
-make install
+make install        # builds + copies to /Applications
 ```
 
-Or just build without installing:
+Or double-click **`install.command`** in Finder — it does everything automatically.
+
+---
+
+## Accessibility permission
+
+xkill-mac needs **Accessibility** access to intercept clicks globally (so the target app never sees the click).
+
+On first launch macOS will prompt automatically. If not:
+
+> **System Settings → Privacy & Security → Accessibility → add xkill-mac → enable toggle**
+
+After granting permission, relaunch the app.
+
+---
+
+## Build reference
 
 ```bash
-make app
-open xkill-mac.app
+make app        # release build → xkill-mac.app
+make install    # build + install to /Applications
+make dmg        # build + create xkill-mac.dmg
+make clean      # remove build artifacts
 ```
 
-## First launch — Accessibility permission
-
-xkill-mac needs **Accessibility** access to intercept mouse clicks globally.
-
-On first launch macOS will show a permission dialog. If it doesn't appear automatically:
-
-1. Open **System Settings → Privacy & Security → Accessibility**
-2. Click **+** and add `xkill-mac`
-3. Enable the toggle
-4. Relaunch the app
-
-> **Note:** If you reinstall or recompile the app, you may need to remove and re-add it in the Accessibility list.
-
-## Usage
-
-| Action | Result |
-|--------|--------|
-| Left-click menu bar icon | Activate kill mode |
-| Click any window (kill mode) | Force-quit that app |
-| **ESC** (kill mode) | Cancel, restore cursor |
-| Right-click menu bar icon | Open context menu / Quit |
-
-## Build from source
-
-```bash
-# Debug build
-swift build
-
-# Release build
-swift build -c release
-
-# Full .app bundle (release + icon + code sign)
-make app
-
-# Install to /Applications
-make install
-
-# Clean
-make clean
-```
+---
 
 ## Project structure
 
 ```
 xkill-mac/
-├── Package.swift           # Swift Package Manager manifest
-├── Makefile                # Build, bundle, install targets
-├── install.command         # Double-click installer for Finder
-├── create_icon.swift       # Generates AppIcon.icns from skull PNG
+├── Sources/xkill-mac/
+│   ├── main.swift          # Entry point
+│   ├── AppDelegate.swift   # Menu bar, ESC hint panel
+│   ├── XKillManager.swift  # Kill mode, CGEvent tap, cursor overlay
+│   └── Info.plist          # LSUIElement, CFBundleIdentifier
 ├── Assets/
 │   ├── skull_normal.png    # Menu bar icon (inactive)
 │   └── skull_active.png    # Menu bar icon + cursor (kill mode)
-└── Sources/xkill-mac/
-    ├── main.swift          # App entry point
-    ├── AppDelegate.swift   # Menu bar setup, ESC hint panel
-    ├── XKillManager.swift  # Kill mode logic, CGEvent tap, cursor overlay
-    └── Info.plist          # Bundle metadata (LSUIElement, CFBundleIdentifier)
+├── Package.swift
+├── Makefile
+├── create_icon.swift       # Generates AppIcon.icns
+└── install.command         # One-click installer
 ```
 
-## How it works (technical)
+## How it works under the hood
 
-- **Menu bar icon** — `NSStatusItem` with custom skull PNG, no Dock icon (`LSUIElement = true`)
-- **Global click interception** — `CGEvent.tapCreate` with `.defaultTap` consumes the click before it reaches the target app (requires Accessibility permission)
-- **Cursor overlay** — borderless `NSPanel` at `.screenSaver` window level that follows the mouse via a global `NSEvent` monitor; real cursor hidden with `CGDisplayHideCursor()`
-- **Window hit-testing** — `CGWindowListCopyWindowInfo` returns on-screen windows in front-to-back order; the first layer-0 window containing the click point is selected
-- **App termination** — `NSRunningApplication.forceTerminate()`
-- **Code signing** — ad-hoc signed (`codesign --sign -`) so Accessibility permission persists across reinstalls
+- **No Dock icon** — runs as `LSUIElement` accessory process
+- **Global click interception** — `CGEvent.tapCreate` with `.defaultTap` consumes the click before the target app receives it
+- **Cursor overlay** — borderless `NSPanel` at `.screenSaver` level follows the mouse; real cursor hidden via `CGDisplayHideCursor()`
+- **Window detection** — `CGWindowListCopyWindowInfo` returns on-screen windows front-to-back; first `layer == 0` window containing the click point wins
+- **Force quit** — `NSRunningApplication.forceTerminate()`
+- **Ad-hoc signed** — `codesign --sign -` so Accessibility permission persists across reinstalls
+
+---
+
+## Requirements
+
+- macOS 13 Ventura or later
+- Xcode Command Line Tools (`xcode-select --install`)
+
+---
 
 ## License
 
-MIT
+MIT © Developed by **Carmelo Battiato** — [github.com/carmelobattiato](https://github.com/carmelobattiato)

@@ -9,3 +9,5 @@ DerivedData/
 *.app/
 AppIcon.iconset/
 *.conf
+*.dmg
+_dmg_tmp/
